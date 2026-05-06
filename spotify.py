@@ -11,16 +11,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import spotipy
+from spotipy.exceptions import SpotifyException
 from spotipy.oauth2 import SpotifyOAuth
+
+__all__ = [
+    "SpotifyException",
+    "make_client",
+    "top_track_uris",
+    "create_playlist",
+    "add_tracks",
+]
 
 SCOPE = "playlist-modify-private playlist-modify-public"
 PLAYLIST_BATCH_SIZE = 100
-
-
-@dataclass(frozen=True)
-class Artist:
-    id: str
-    name: str
 
 
 def make_client() -> spotipy.Spotify:
@@ -31,24 +34,6 @@ def make_client() -> spotipy.Spotify:
     """
     auth_manager = SpotifyOAuth(scope=SCOPE, cache_path=".spotipy_cache")
     return spotipy.Spotify(auth_manager=auth_manager, requests_timeout=30, retries=3)
-
-
-def find_artist(client: spotipy.Spotify, name: str) -> Artist | None:
-    """Resolve an artist name to a Spotify artist via the search endpoint.
-
-    Returns the highest-popularity exact (case-insensitive) name match if one
-    exists, otherwise the first search result, otherwise ``None``.
-    """
-    result = client.search(q=f'artist:"{name}"', type="artist", limit=10)
-    items = result.get("artists", {}).get("items", [])
-    if not items:
-        return None
-
-    target = name.casefold()
-    exact = [a for a in items if a["name"].casefold() == target]
-    pool = exact or items
-    best = max(pool, key=lambda a: a.get("popularity", 0))
-    return Artist(id=best["id"], name=best["name"])
 
 
 def top_track_uris(

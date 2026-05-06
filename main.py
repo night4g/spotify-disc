@@ -82,21 +82,21 @@ def main() -> int:
     matched = 0
     missing: list[str] = []
     for i, listing in enumerate(listings, 1):
-        artist = spotify.find_artist(client, listing.name)
-        if artist is None:
+        try:
+            uris = spotify.top_track_uris(
+                client,
+                listing.spotify_id,
+                market=args.market,
+                limit=args.tracks_per_artist,
+            )
+        except spotify.SpotifyException as exc:
             missing.append(listing.name)
-            print(f"  [{i}/{len(listings)}] {listing.name}: NOT FOUND")
+            print(f"  [{i}/{len(listings)}] {listing.name}: SKIPPED ({exc})")
             continue
 
-        uris = spotify.top_track_uris(
-            client,
-            artist.id,
-            market=args.market,
-            limit=args.tracks_per_artist,
-        )
         track_uris.extend(uris)
         matched += 1
-        print(f"  [{i}/{len(listings)}] {artist.name}: +{len(uris)} tracks")
+        print(f"  [{i}/{len(listings)}] {listing.name}: +{len(uris)} tracks")
 
     if not track_uris:
         print("No tracks resolved; aborting playlist creation.", file=sys.stderr)
